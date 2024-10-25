@@ -55,15 +55,17 @@ executeCommand('pm2 stop all && pm2 delete all', 'stopping and deleting all PM2 
         });
     }
 
-    // After starting all apps, run the restart.sh script
-    executeCommand('/home/ubuntu/botchat/restart.sh', 'running restart.sh')
-      .then(() => {
-        console.log('All processes started and restart.sh executed successfully');
-      })
-      .catch((error) => {
-        console.error(`Error running restart.sh: ${error}`);
-        process.exit(1); // Exit the script with failure if restart.sh fails
-      });
+    // Add a 5-second delay before running restart.sh
+    setTimeout(() => {
+      executeCommand('/home/ubuntu/botchat/restart.sh', 'running restart.sh')
+        .then(() => {
+          console.log('All processes started and restart.sh executed successfully');
+        })
+        .catch((error) => {
+          console.error(`Error running restart.sh: ${error}`);
+          process.exit(1); // Exit the script with failure if restart.sh fails
+        });
+    }, 5000); // 5000 milliseconds = 5 seconds
   })
   .catch((error) => {
     console.error(`Failed during PM2 stop/delete: ${error}`);
