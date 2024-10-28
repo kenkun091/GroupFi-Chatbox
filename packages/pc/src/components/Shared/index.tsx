@@ -69,17 +69,25 @@ export function wrapGroupMeta(
 
 export function AppWrapper({ children }: PropsWithChildren<{}>) {
   return (
-    <div
-      className={classNames('w-full h-full border border-black/10 rounded-2xl')}
-    >
+    <div className="w-full h-full overflow-x-hidden">
       <div
         className={classNames(
-          'flex items-center justify-center rounded-tr-2xl absolute right-0 z-10 h-[44px] w-[48px]'
+          'w-full h-full max-w-[100vw]',
+          'border border-black/10 rounded-2xl',
+          'relative overflow-hidden'
         )}
       >
-        {CollapseTopIcon()}
+        <div
+          className={classNames(
+            'flex items-center justify-center rounded-tr-2xl absolute right-0 z-10 h-[44px] w-[48px]'
+          )}
+        >
+          {CollapseTopIcon()}
+        </div>
+        <div className="w-full h-full overflow-y-auto overflow-x-hidden">
+          {children}
+        </div>
       </div>
-      {children}
     </div>
   )
 }
