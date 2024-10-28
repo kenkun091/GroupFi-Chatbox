@@ -11,12 +11,10 @@ function isEvmAddress(address: string): boolean {
   return ethers.isAddress(address);
 }
 
-
 export function Account() {
   const { address, isDisconnected } = useAccount()
   const { messageDomain } = useMessageDomain() 
 
-  
   React.useEffect(() => {
     console.log('account changed', address, Date.now());
 
@@ -30,11 +28,21 @@ export function Account() {
 
     if (!address) {
       store.dispatch(setIsBrowseMode(isDisconnected))
-
     }
   }, [address]);
 
   return (
-    <ConnectButton />
+    <div className="flex w-full items-center justify-between px-6">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white truncate">GroupFi</h1>
+      <ConnectButton.Custom>
+        {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+          return (
+            <div className="flex-shrink-0">
+              <ConnectButton />
+            </div>
+          )
+        }}
+      </ConnectButton.Custom>
+    </div>
   )
 }

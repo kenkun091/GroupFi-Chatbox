@@ -36,7 +36,7 @@ export function AddGroupButton() {
   return (
     <>
       <div 
-        className="flex justify-center items-center h-full cursor-pointer"
+        className="flex justify-center items-center h-6 cursor-pointer"
         onClick={handleClick}
       >
         <span className="text-2xl font-light">+</span>
@@ -50,7 +50,6 @@ function AddGroupModal({ onClose }: { onClose: () => void }) {
   const [chainId, setChainId] = useState('');
   const [contractAddress, setContractAddress] = useState('');
   const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { messageDomain } = useMessageDomain();
@@ -80,23 +79,19 @@ function AddGroupModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-
-  const handleAddGroup = async () => {
-    console.log('selectedGroup111', selectedGroup);
-    if (selectedGroup) {
-      const includes = [{ groupId: selectedGroup }];
-      const configs = await groupFiService.fetchForMeGroupConfigs({ includes });
-      const groupid = removeHexPrefixIfExist(configs[0].groupId);
-      console.log('groupid-xxx', groupid);
-      navigate(`/group/${groupid}`);
-      onClose();
-    }
+  const handleGroupSelect = async (groupId: string) => {
+    const includes = [{ groupId }];
+    const configs = await groupFiService.fetchForMeGroupConfigs({ includes });
+    const groupid = removeHexPrefixIfExist(configs[0].groupId);
+    navigate(`/group/${groupid}`);
+    onClose();
   };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[480px] max-w-full">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Add Group</h2>
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Search Group</h2>
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -133,34 +128,21 @@ function AddGroupModal({ onClose }: { onClose: () => void }) {
         </button>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         {groups.length > 0 && (
-          <select
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            className="w-full mb-4 p-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white"
-          >
-            <option value="">Select a group</option>
-            {groups.map((group) => (
-              <option key={group.groupId} value={group.groupId}>
-                {group.groupName}
-              </option>
-            ))}
-          </select>
+          <div className="mt-4 max-h-60 overflow-y-auto">
+            {/* <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Select a group:</h3> */}
+            <div className="grid grid-cols-1 gap-2">
+              {groups.map((group) => (
+                <button
+                  key={group.groupId}
+                  onClick={() => handleGroupSelect(group.groupId)}
+                  className="p-2 text-left bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition duration-300"
+                >
+                  {group.groupName}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
-        <div className="flex justify-end space-x-4">
-          <button 
-            onClick={onClose} 
-            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition duration-300"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleAddGroup} 
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-300"
-            disabled={!selectedGroup}
-          >
-            Add Group
-          </button>
-        </div>
       </div>
     </div>
   );

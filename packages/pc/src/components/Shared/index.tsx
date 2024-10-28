@@ -460,10 +460,10 @@ export function GroupListTab(props: { groupFiService: GroupFiService }) {
 
   const currentAddress = groupFiService.getCurrentAddress()
 
-  const forMeTab = {
-    label: 'Chat',
-    key: 'forMe'
-  }
+  // const forMeTab = {
+  //   label: 'Chat',
+  //   key: 'forMe'
+  // }
 
   const myGroupsTab = {
     label: 'My Groups',
@@ -515,8 +515,8 @@ export function GroupListTab(props: { groupFiService: GroupFiService }) {
     flex?: string
     render?: () => JSX.Element
   }[] = isUserBrowseMode
-    ? [forMeTab, placeHolder]
-    : [forMeTab, myGroupsTab, profileTab, addTab]
+    ? []
+    : [myGroupsTab, profileTab, addTab]
 
   return tabList.map(({ label, key, flex, render }, index) => (
     <Fragment key={key}>
@@ -944,4 +944,3 @@ export function Powered() {
     </div>
   )
 }
-

@@ -38,13 +38,16 @@ import {
   IInboxMessage
 } from 'groupfi-sdk-chat'
 
-import { useAppSelector } from 'redux/hooks'
+import { useAppSelector,useAppDispatch } from '../../redux/hooks'
 import useForMeGroupConfig from 'hooks/useForMeGroupConfig'
 import useIsForMeGroupsLoading from 'hooks/useIsForMeGroupsLoading'
 import useMyGroupConfig from 'hooks/useMyGroupConfig'
 import useUserBrowseMode from 'hooks/useUserBrowseMode'
 import useAnnouncement from 'hooks/useAnnouncement'
 import useProfile from 'hooks/useProfile'
+import { changeActiveTab } from '../../redux/appConfigSlice'
+
+
 
 export default function GropuList() {
   const { messageDomain } = useMessageDomain()
@@ -53,6 +56,7 @@ export default function GropuList() {
   const [inboxList, setInboxList] = useState<IInboxGroup[]>([])
 
   const isUserBrowseMode = useUserBrowseMode()
+  const appDispatch = useAppDispatch()
 
   const refreshInboxList = async () => {
     const inboxList = await messageDomain.getInboxList()
@@ -76,7 +80,13 @@ export default function GropuList() {
   }, [])
 
   let activeTab = useAppSelector((state) => state.appConifg.activeTab)
-  activeTab = isUserBrowseMode ? 'forMe' : activeTab
+  // 修改这里：如果已连接钱包且不是浏览模式，则显示 ofMe (My Groups) 标签页
+  const currentAddress = groupFiService.getCurrentAddress()
+  useEffect(() => {
+    if (!isUserBrowseMode && currentAddress && activeTab === 'forMe') {
+      appDispatch(changeActiveTab('ofMe'))
+    }
+  }, [currentAddress, isUserBrowseMode])
 
   const announcement = useAnnouncement()
 
@@ -123,6 +133,11 @@ function ForMeGroups(props: {
   announcement: IIncludesAndExcludes[] | undefined
 }) {
   const { groupFiService, inboxList, announcement, isUserBrowseMode } = props
+
+  // 如果是浏览模式，直接返回空提示
+  if (isUserBrowseMode) {
+    return <NoGroupPrompt groupType="forme" />
+  }
 
   const forMeGroups = useForMeGroupConfig()
 
@@ -299,7 +314,7 @@ function NoGroupPrompt(props: { groupType: 'mygroup' | 'forme' }) {
   const { groupType } = props
   const content =
     groupType === 'forme'
-      ? 'No Available Group For You'
+      ? 'Please connect wallet'
       : groupType === 'mygroup'
       ? "You don't have any groups yet"
       : ''
