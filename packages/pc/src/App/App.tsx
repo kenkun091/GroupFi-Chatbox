@@ -83,6 +83,13 @@ const routes: RouteObject[] = [
           const Component = (await import('../components/ProfileEdit')).default
           return { Component }
         }
+      },
+      {
+        path: '/discover',
+        async lazy() {
+          const Component = (await import('../components/Discover')).default
+          return { Component }
+        }
       }
     ]
   }

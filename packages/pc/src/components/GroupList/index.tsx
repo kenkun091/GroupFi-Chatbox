@@ -24,6 +24,8 @@ import PrivateGroupSVG from 'public/icons/private.svg?react'
 // @ts-ignore
 import NoGroupSVG from 'public/icons/no-group.svg?react'
 // @ts-ignore
+import ExploreSVG from 'public/icons/explore.svg?react'
+// @ts-ignore
 import AnnouncementGroupSVG from 'public/icons/announcement.svg?react'
 import { useGroupIsPublic } from 'hooks'
 import MessageViewer from '../ChatRoom/MessageViewer'
@@ -90,6 +92,8 @@ export default function GropuList() {
 
   const announcement = useAnnouncement()
 
+  const navigate = useNavigate()
+
   return (
     <ContainerWrapper>
       <HeaderWrapper>
@@ -115,6 +119,17 @@ export default function GropuList() {
           <UserProfile groupFiService={groupFiService} />
         )}
       </ContentWrapper>
+      <div className="flex-none border-t border-black/10 dark:border-gray-600 p-2">
+        <button 
+          onClick={() => navigate('/discover')}
+          className="w-full flex items-center justify-center space-x-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          <ExploreSVG className={classNames(
+            'w-5 h-5'
+          )}/>
+          <span>Discover</span>
+        </button>
+      </div>
     </ContainerWrapper>
   )
 }
