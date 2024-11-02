@@ -45,8 +45,8 @@ const routes: RouteObject[] = [
   {
     path: '/',
     async lazy() {
-      const SplitLayout = (await import('../components/SplitLayout/SplitLayout')).default
-      return { element: <SplitLayout /> }
+      const Component = (await import('../components/SplitLayout/SplitLayout')).default
+      return { element: <Component /> }
     },
     children: [
       {
@@ -671,3 +671,4 @@ function AppDelegationModeCheck(props: { address: string }) {
     <AppRouter />
   )
 }
+

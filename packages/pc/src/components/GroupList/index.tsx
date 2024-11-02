@@ -38,13 +38,16 @@ import {
   IInboxMessage
 } from 'groupfi-sdk-chat'
 
-import { useAppSelector } from 'redux/hooks'
+import { useAppSelector,useAppDispatch } from '../../redux/hooks'
 import useForMeGroupConfig from 'hooks/useForMeGroupConfig'
 import useIsForMeGroupsLoading from 'hooks/useIsForMeGroupsLoading'
 import useMyGroupConfig from 'hooks/useMyGroupConfig'
 import useUserBrowseMode from 'hooks/useUserBrowseMode'
 import useAnnouncement from 'hooks/useAnnouncement'
 import useProfile from 'hooks/useProfile'
+import { changeActiveTab } from '../../redux/appConfigSlice'
+
+
 
 export default function GropuList() {
   const { messageDomain } = useMessageDomain()
@@ -53,6 +56,7 @@ export default function GropuList() {
   const [inboxList, setInboxList] = useState<IInboxGroup[]>([])
 
   const isUserBrowseMode = useUserBrowseMode()
+  const appDispatch = useAppDispatch()
 
   const refreshInboxList = async () => {
     const inboxList = await messageDomain.getInboxList()
@@ -76,9 +80,14 @@ export default function GropuList() {
   }, [])
 
   let activeTab = useAppSelector((state) => state.appConifg.activeTab)
-  activeTab = isUserBrowseMode ? 'forMe' : activeTab
+  // 修改这里：如果已连接钱包且不是浏览模式，则显示 ofMe (My Groups) 标签页
+  const currentAddress = groupFiService.getCurrentAddress()
+  useEffect(() => {
+    if (!isUserBrowseMode && currentAddress && activeTab === 'forMe') {
+      appDispatch(changeActiveTab('ofMe'))
+    }
+  }, [currentAddress, isUserBrowseMode])
 
-  // const announcement = useAppSelector((state) => state.forMeGroups.announcement)
   const announcement = useAnnouncement()
 
   return (
@@ -89,6 +98,7 @@ export default function GropuList() {
       <ContentWrapper>
         {activeTab === 'forMe' && (
           <ForMeGroups
+            isUserBrowseMode={isUserBrowseMode}
             groupFiService={groupFiService}
             inboxList={inboxList}
             announcement={announcement}
@@ -113,14 +123,21 @@ type GroupRenderList = IInboxGroup & {
   groupName: string
   isPublic?: boolean
   icon?: string
+  isMember?: boolean
 }
 
 function ForMeGroups(props: {
   inboxList: IInboxGroup[]
+  isUserBrowseMode: boolean
   groupFiService: GroupFiService
   announcement: IIncludesAndExcludes[] | undefined
 }) {
-  const { groupFiService, inboxList, announcement } = props
+  const { groupFiService, inboxList, announcement, isUserBrowseMode } = props
+
+  // 如果是浏览模式，直接返回空提示
+  if (isUserBrowseMode) {
+    return <NoGroupPrompt groupType="forme" />
+  }
 
   const forMeGroups = useForMeGroupConfig()
 
@@ -175,11 +192,14 @@ function ForMeGroups(props: {
         latestMessage,
         unreadCount,
         isPublic,
-        icon
+        icon,
+        isMember
       }) => (
         <GroupListItem
           key={groupId}
           isPublic={isPublic}
+          isUserBrowseMode={isUserBrowseMode}
+          isMember={isMember}
           groupId={groupId}
           groupName={groupName ?? ''}
           icon={icon}
@@ -294,7 +314,7 @@ function NoGroupPrompt(props: { groupType: 'mygroup' | 'forme' }) {
   const { groupType } = props
   const content =
     groupType === 'forme'
-      ? 'No Available Group For You'
+      ? 'Please connect wallet'
       : groupType === 'mygroup'
       ? "You don't have any groups yet"
       : ''
@@ -392,7 +412,9 @@ function GroupListItem({
   groupFiService,
   isPublic,
   position,
-  icon
+  icon,
+  isMember,
+  isUserBrowseMode
 }: {
   icon?: string
   isPublic?: boolean
@@ -404,97 +426,122 @@ function GroupListItem({
   groupFiService: GroupFiService
   latestMessageSenderProfile?: UserProfileInfo
   position: 'ofMe' | 'forMe'
+  isMember?: boolean
+  isUserBrowseMode?: boolean
 }) {
-  const { isPublic: isPublicFromFetch } = useGroupIsPublic(groupId)
+  const navigate = useNavigate()
+  // isPublic !== undefined, Actually not fetch
+  const { isPublic: isPublicFromFetch } = useGroupIsPublic(groupId, isPublic !== undefined)
 
   const isGroupPublic = isPublic !== undefined ? isPublic : isPublicFromFetch
 
   const latestMessageTimestamp = latestMessage?.timestamp
 
+  const isPrivateGroupNotMember = isGroupPublic === false && isMember === false
+
+  const isPrivateGroupAndBrowseMode =
+    isGroupPublic === false && isUserBrowseMode === true
+
+  const isAccessRequired =
+    isPrivateGroupNotMember || isPrivateGroupAndBrowseMode
+
   return (
-    <Link
-      to={`/group/${removeHexPrefixIfExist(
-        groupId
-      )}?announcement=${isAnnouncement}`}
+    // <Link
+    //   to={`/group/${removeHexPrefixIfExist(
+    //     groupId
+    //   )}?announcement=${isAnnouncement}`}
+    // >
+    <div
+      onClick={() => {
+        const to = `/group/${removeHexPrefixIfExist(
+          groupId
+        )}?announcement=${isAnnouncement}&isPublic=${isGroupPublic}`
+        navigate(to)
+      }}
+      className={classNames(
+        'flex flex-row hover:bg-gray-50 dark:hover:bg-gray-800 mx-4 rounded-lg'
+      )}
     >
+      <GroupIcon
+        icon={icon}
+        groupId={groupId}
+        unReadNum={position === 'ofMe' ? unReadNum : 0}
+        groupFiService={groupFiService}
+      />
       <div
         className={classNames(
-          'flex flex-row hover:bg-gray-50 dark:hover:bg-gray-800 mx-4 rounded-lg'
+          'flex flex-row flex-1 border-b border-black/[0.04] dark:border-[#b0b0b0]/25 max-w-full overflow-hidden'
         )}
       >
-        <GroupIcon
-          icon={icon}
-          groupId={groupId}
-          unReadNum={position === 'ofMe' ? unReadNum : 0}
-          groupFiService={groupFiService}
-        />
         <div
           className={classNames(
-            'flex flex-row flex-1 border-b border-black/10 dark:border-[#eeeeee80] max-w-full overflow-hidden'
+            'flex-auto mt-13px cursor-pointer overflow-hidden dark:text-white'
           )}
         >
           <div
             className={classNames(
-              'flex-auto mt-13px cursor-pointer overflow-hidden dark:text-white'
+              'overflow-hidden whitespace-nowrap text-ellipsis'
             )}
           >
-            <div
-              className={classNames(
-                'overflow-hidden whitespace-nowrap text-ellipsis'
-              )}
-            >
-              {isAnnouncement === true && (
-                <AnnouncementGroupSVG
-                  className={classNames('inline-block mr-1 w-5 h-5 mb-[3px]')}
-                />
-              )}
-              {isGroupPublic === false && (
-                <PrivateGroupSVG
-                  className={classNames('inline-block mr-1 w-4 h-4 mb-[3px]')}
-                />
-              )}
-              {isAnnouncement ? 'Announcement' : groupName}
-            </div>
-            <div
-              className={classNames(
-                'text-sm opacity-30 overflow-hidden whitespace-nowrap text-ellipsis'
-              )}
-            >
-              {unReadNum > 0
-                ? unReadNum === 1
-                  ? `[${unReadNum} message] `
-                  : unReadNum <= 20
-                  ? `[${unReadNum} messages] `
-                  : '[20+ messages] '
-                : null}
-              {latestMessage !== undefined && (
-                <>
-                  {latestMessage.name ??
-                    addressToUserName(latestMessage.sender)}
-                  <span className={classNames('mx-px')}>:</span>
-                  <MessageViewer
-                    message={latestMessage.message}
-                    groupId={groupId}
-                    ifMessageIncludeOriginContent={true}
-                    ifShowImg={false}
-                  />
-                </>
-              )}
-            </div>
+            {isAnnouncement === true && (
+              <AnnouncementGroupSVG
+                className={classNames('inline-block mr-1 w-5 h-5 mb-[3px]')}
+              />
+            )}
+            {isGroupPublic === false && (
+              <PrivateGroupSVG
+                className={classNames('inline-block mr-1 w-4 h-4 mb-[3px]')}
+              />
+            )}
+            {isAnnouncement ? 'Announcement' : groupName}
           </div>
-          {latestMessageTimestamp && (
-            <div
-              className={classNames(
-                'flex-none text-sm opacity-30 dark:text-white mt-19px'
-              )}
-            >
-              {checkIsToday(latestMessageTimestamp)
-                ? timeFormater(latestMessageTimestamp)
-                : dateFormater(latestMessageTimestamp)}
-            </div>
-          )}
+          <div
+            className={classNames(
+              'text-sm text-[#333] dark:text-[#b0b0b0] dark:opacity-100 opacity-60 overflow-hidden whitespace-nowrap text-ellipsis'
+            )}
+          >
+            {!isAccessRequired && unReadNum > 0
+              ? unReadNum === 1
+                ? `[${unReadNum} message] `
+                : unReadNum <= 20
+                ? `[${unReadNum} messages] `
+                : '[20+ messages] '
+              : null}
+            {!isAccessRequired && latestMessage !== undefined && (
+              <>
+                {latestMessage.name ?? addressToUserName(latestMessage.sender)}
+                <span className={classNames('mx-px')}>:</span>
+                <MessageViewer
+                  message={latestMessage.message}
+                  groupId={groupId}
+                  ifMessageIncludeOriginContent={true}
+                  ifShowImg={false}
+                />
+              </>
+            )}
+            {isAccessRequired && (
+              <MessageViewer
+                message="Access Required"
+                groupId={groupId}
+                ifMessageIncludeOriginContent={false}
+                ifShowImg={false}
+              />
+            )}
+          </div>
         </div>
+        {!isAccessRequired && latestMessageTimestamp && (
+          <div
+            className={classNames(
+              'flex-none text-xs opacity-30 dark:text-[#eee] dark:opacity-50 mt-19px'
+            )}
+          >
+            {checkIsToday(latestMessageTimestamp)
+              ? timeFormater(latestMessageTimestamp)
+              : dateFormater(latestMessageTimestamp, false)}
+          </div>
+        )}
       </div>
-    </Link>
+    </div>
+    // </Link>
   )
 }

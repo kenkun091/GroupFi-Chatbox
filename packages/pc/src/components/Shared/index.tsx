@@ -35,6 +35,7 @@ import useGroupMeta from 'hooks/useGroupMeta'
 import useProfile from 'hooks/useProfile'
 
 import communicator from 'sdk'
+import { AddGroupButton } from '../AddGroup';
 
 function getFieldValueFromGroupConfig(
   groupConfig: MessageGroupMeta,
@@ -68,17 +69,25 @@ export function wrapGroupMeta(
 
 export function AppWrapper({ children }: PropsWithChildren<{}>) {
   return (
-    <div
-      className={classNames('w-full h-full border border-black/10 rounded-2xl')}
-    >
+    <div className="w-full h-full overflow-x-hidden">
       <div
         className={classNames(
-          'flex items-center justify-center rounded-tr-2xl absolute right-0 z-10 h-[44px] w-[48px]'
+          'w-full h-full max-w-[100vw]',
+          'border border-black/10 rounded-2xl',
+          'relative overflow-hidden'
         )}
       >
-        {CollapseTopIcon()}
+        <div
+          className={classNames(
+            'flex items-center justify-center rounded-tr-2xl absolute right-0 z-10 h-[44px] w-[48px]'
+          )}
+        >
+          {CollapseTopIcon()}
+        </div>
+        <div className="w-full h-full overflow-y-auto overflow-x-hidden">
+          {children}
+        </div>
       </div>
-      {children}
     </div>
   )
 }
@@ -98,20 +107,9 @@ export function ContainerWrapper({
 
 export function HeaderWrapper({ children }: PropsWithChildren<{}>) {
   return (
-    <div
-      className={classNames(
-        'flex-none border-b border-black/10 dark:border-gray-600 dark:bg-[#3C3D3F] font-medium'
-      )}
-    >
+    <div className={classNames('flex-none border-b border-black/10 dark:border-gray-600 dark:bg-[#3C3D3F] font-medium')}>
       <div className={classNames('flex flex-row text-center')}>
         {children}
-        <div
-          className={classNames(
-            'flex-none border-r border-black/10 dark:border-gray-600 mt-1.5 mb-1.5'
-          )}
-        ></div>
-        <div className={classNames('flex-none basis-12')}></div>
-        
       </div>
     </div>
   )
@@ -462,10 +460,10 @@ export function GroupListTab(props: { groupFiService: GroupFiService }) {
 
   const currentAddress = groupFiService.getCurrentAddress()
 
-  const forMeTab = {
-    label: 'Chat',
-    key: 'forMe'
-  }
+  // const forMeTab = {
+  //   label: 'Chat',
+  //   key: 'forMe'
+  // }
 
   const myGroupsTab = {
     label: 'My Groups',
@@ -502,14 +500,23 @@ export function GroupListTab(props: { groupFiService: GroupFiService }) {
     flex: 'grow basis-14'
   }
 
+  const addTab = {
+    label: '+',
+    key: 'add',
+    flex: 'flex-none w-10',
+    render: () => (
+      <AddGroupButton />
+    )
+  }
+
   const tabList: {
     label: string
     key: string
     flex?: string
     render?: () => JSX.Element
   }[] = isUserBrowseMode
-    ? [forMeTab, placeHolder]
-    : [forMeTab, myGroupsTab, profileTab]
+    ? []
+    : [myGroupsTab, profileTab, addTab]
 
   return tabList.map(({ label, key, flex, render }, index) => (
     <Fragment key={key}>
@@ -522,6 +529,10 @@ export function GroupListTab(props: { groupFiService: GroupFiService }) {
       )}
       <div
         onClick={() => {
+          if (key === 'add') {
+            // 对于加号按钮，不执行 changeActiveTab
+            return;
+          }
           if (!label) {
             return
           }
